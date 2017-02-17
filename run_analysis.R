@@ -10,7 +10,7 @@
 # using row.name=FALSE (do not cut and paste a dataset directly into the text box, as this may cause errors saving your submission).
 
 # Setting the working directory
-setwd("C:/Users/Leonardo Sala/Desktop/COURSERA/Data_Science_Specialization/3_Data_cleaning/ASSIGNMENT_WEEK_4/GIT_HOME")
+setwd("C:/Users/Leonardo Sala/Desktop/COURSERA/Data_Science_Specialization/3_Data_cleaning/ASSIGNMENT_WEEK_4/GIT_HOME/Peer-graded-Assignment-Getting-and-Cleaning-Data-Course-Project")
 
 # Common data ==================================================================================================================================
 # Read In features Labels
@@ -70,5 +70,15 @@ frame_merged_users <- rbind(frame_train_users,frame_test_users)
 frame_merged_activities <- rbind(frame_train_activities,frame_test_activities)
 # Replace number with 
 
-#Labeling the columns
-colnames(frame_merged_features) <- new_labels[2,]
+# Labeling the columns
+colnames(frame_merged_features) <- features_labels[2,]
+
+# Adding users and activities under the "users" and "activities" labels
+frame_merged_features$users <- frame_merged_users
+frame_merged_features$activities <- frame_merged_activities
+
+# Mnemonic labeling
+activity.code <- c(`NONE` = 0, WALKING=1, WALKING_UPSTAIRS=2, WALKING_DOWNSTAIRS=3, SITTING=4,  STANDING=5,  LAYING=6)
+activity.str <- names(activity.code) [match(as.numeric(unlist(frame_merged_features$activities)), activity.code)]
+frame_merged_features$activities <- activity.str
+
