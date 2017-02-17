@@ -75,10 +75,22 @@ colnames(frame_merged_features) <- features_labels[2,]
 
 # Adding users and activities under the "users" and "activities" labels
 frame_merged_features$users <- frame_merged_users
-frame_merged_features$activities <- frame_merged_activities
+colnames(frame_merged_features$users) <- "users"
 
 # Mnemonic labeling
 activity.code <- c(`NONE` = 0, WALKING=1, WALKING_UPSTAIRS=2, WALKING_DOWNSTAIRS=3, SITTING=4,  STANDING=5,  LAYING=6)
-activity.str <- names(activity.code) [match(as.numeric(unlist(frame_merged_features$activities)), activity.code)]
-frame_merged_features$activities <- activity.str
+activity.str <- names(activity.code) [match(as.numeric(unlist(frame_merged_activities)), activity.code)]
+frame_merged_features$activities <- data.frame(activity.str)
+colnames(frame_merged_features$users) <- "activities"
+
+
+
+# Mean and stddev extraction  ====================================================================================================================
+columns_mean <- colMeans(frame_merged_features[,1:561])
+apply(frame_merged_features[,1:561], 2, sd)
+
+
+
+
+
 
