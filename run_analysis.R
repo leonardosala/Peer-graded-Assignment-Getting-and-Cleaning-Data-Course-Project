@@ -1,96 +1,79 @@
-# run_analysis.R
-# 1. Merges the training and the test sets to create one data set.
-# 2. Extracts only the measurements on the mean and standard deviation for each measurement.
-# 3. Uses descriptive activity names to name the activities in the data set
-# 4. Appropriately labels the data set with descriptive variable names.
-# 4. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+# Leonardo Sala
+# This script is the assignement for the Data Cleaning course, part if the Data Specialization
 
-# Please upload the tidy data set created in step 5 of the instructions. 
-# Please upload your data set as a txt file created with write.table() 
-# using row.name=FALSE (do not cut and paste a dataset directly into the text box, as this may cause errors saving your submission).
+# Loading PLYR
+library(plyr);
 
-# Setting the working directory
+# Setting working Directory
 setwd("C:/Users/Leonardo Sala/Desktop/COURSERA/Data_Science_Specialization/3_Data_cleaning/ASSIGNMENT_WEEK_4/GIT_HOME/Peer-graded-Assignment-Getting-and-Cleaning-Data-Course-Project")
+getwd()
 
-# Common data ==================================================================================================================================
-# Read In features Labels
-frame_features <- read.csv("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/features.txt", header = FALSE, sep = "")
-features_labels <- t(frame_features)
+# Getting Zipped data
+fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(fileUrl,destfile="./data/Dataset.zip")
+unzip(zipfile="./data/Dataset.zip",exdir="./data")
 
+# Reading Training Data
+x_train <- read.table("./data/UCI HAR Dataset/train/X_train.txt")
+y_train <- read.table("./data/UCI HAR Dataset/train/y_train.txt")
+subject_train <- read.table("./data/UCI HAR Dataset/train/subject_train.txt")
 
-# Read In activity Labels
-frame_labels <- read.csv("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/activity_labels.txt", header = FALSE, sep = "")
-activity_labels <- frame_labels
+# Reading Testing Data
+x_test <- read.table("./data/UCI HAR Dataset/test/X_test.txt")
+y_test <- read.table("./data/UCI HAR Dataset/test/y_test.txt")
+subject_test <- read.table("./data/UCI HAR Dataset/test/subject_test.txt")
 
-# TRAINING DATA SET ============================================================================================================================
-# Reading the features
-frame_train_features <- read.csv("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/train/X_train.txt", header = FALSE, sep = "")
-# Reading the activities
-frame_train_activities <- read.csv("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/train/subject_train.txt", header = FALSE, sep = "")
-# Reading the users
-frame_train_users <- read.csv("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/train/y_train.txt", header = FALSE, sep = "")
+# Reading features and activity labels
+features <- read.table("./data/UCI HAR Dataset/features.txt")
+Act_LBL = read.table("./data/UCI HAR Dataset/activity_labels.txt")
 
+#Setting column names for the training data set
+colnames(x_train) <- features[,2] 
+colnames(y_train) <-"Act_ID"
+colnames(subject_train) <- "Sub_ID"
 
-# TESTING DATA SET =============================================================================================================================
-# Reading the data in - test data set
-frame_test_features <- read.table("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/test/X_test.txt", header = FALSE, sep = "")
-# Reading the activities
-frame_test_activities <- read.csv("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/test/subject_test.txt", header = FALSE, sep = "")
-# Reading the users
-frame_test_users <- read.csv("../../getdata_projectfiles_UCI_HAR_Dataset/UCI_HAR_Dataset/test/y_test.txt", header = FALSE, sep = "")
+#Setting column names for the testing data set
+colnames(x_test) <- features[,2] 
+colnames(y_test) <- "Act_ID"
+colnames(subject_test) <- "Sub_ID"
 
-# check class and size
-class(frame_train_features)
-dim(frame_train_features)
+colnames(Act_LBL) <- c('Act_ID','activityType')
 
+# Merging by columns {Users;Activities,Features}
+mergeTrain <- cbind(y_train, x_train,  subject_train)
+mergeTest  <- cbind(y_test,  x_test,   subject_test )
 
-class(frame_test_features)
-dim(frame_test_features)
+# Merging by rows Training and Testing data sets
+wholeDataset <- rbind(mergeTrain, mergeTest)
 
-# Actual Merging  ==============================================================================================================================
-# Prevent the binding should anything be wrong
-if (ncol(frame_test_features)==ncol(frame_train_features)){
-  print("Size matches")
-  } else {
-  print("Size mismatch!")
-  stop("Now leaving")
-}
+# Extracting measurements on the mean and standard deviation for each measurement
+colNames <- colnames(wholeDataset)
 
-# Labeling  =====================================================================================================================================
-# Merging the data
-frame_merged_features <- rbind(frame_train_features,frame_test_features)
+# Boolean vector indicating columns being either activity, user
+moments <- (  grepl("Act_ID" , colNames) | 
+                grepl("Sub_ID" , colNames) | 
+                grepl("mean.." , colNames) | 
+                grepl("std.." , colNames) 
+)
+# Data Set reduced and having only Activity, User, Mean and standard deviation
+momentsDataset <- wholeDataset[ , moments == TRUE]
 
-class(frame_merged_features)
-dim(frame_merged_features)
+# Using mnemonic activity names to name the activities in the data set
+setWithActivityNames <- merge(momentsDataset, Act_LBL,
+                              by='Act_ID',
+                              all.x=TRUE)
 
-# Labeling the rows - Users
-frame_merged_users <- rbind(frame_train_users,frame_test_users)
+# Creates a second, derived tidy data set with the average of each variable for each Activity and each Subject
+TidyDataSet <- aggregate(. ~Sub_ID + Act_ID, setWithActivityNames, mean)
 
-# Labeling the rows - activity
-frame_merged_activities <- rbind(frame_train_activities,frame_test_activities)
-# Replace number with 
+# Sort Properly  by User First and by Activity next
+TidyDataSet <- TidyDataSet[order(TidyDataSet$Sub_ID, TidyDataSet$Act_ID),]
 
-# Labeling the columns
-colnames(frame_merged_features) <- features_labels[2,]
-
-# Adding users and activities under the "users" and "activities" labels
-frame_merged_features$users <- frame_merged_users
-colnames(frame_merged_features$users) <- "users"
-
-# Mnemonic labeling
+# Replace the activity numeric with Label
 activity.code <- c(`NONE` = 0, WALKING=1, WALKING_UPSTAIRS=2, WALKING_DOWNSTAIRS=3, SITTING=4,  STANDING=5,  LAYING=6)
-activity.str <- names(activity.code) [match(as.numeric(unlist(frame_merged_activities)), activity.code)]
-frame_merged_features$activities <- data.frame(activity.str)
-colnames(frame_merged_features$users) <- "activities"
+activity.str <- names(activity.code) [match(as.numeric(unlist(TidyDataSet$Act_ID)), activity.code)]
+TidyDataSet$Act_ID <- as.character(activity.str)
 
 
-
-# Mean and stddev extraction  ====================================================================================================================
-columns_mean <- colMeans(frame_merged_features[,1:561])
-apply(frame_merged_features[,1:561], 2, sd)
-
-
-
-
-
-
+# Save the text file
+write.table(TidyDataSet, "TidyDataSet.txt", row.name=FALSE)
